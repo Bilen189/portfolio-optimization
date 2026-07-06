@@ -1,33 +1,28 @@
-import pandas as pd
 import yfinance as yf
+import pandas as pd
 
 
-def fetch_stock_data(tickers, start_date, end_date):
-    """
-    Fetch historical financial data from Yahoo Finance.
-    """
-    data = {}
+def download_market_data(tickers, start_date, end_date):
+    if not tickers:
+        raise ValueError("Ticker list cannot be empty.")
 
-    for ticker in tickers:
-        try:
-            df = yf.download(
-                ticker,
-                start=start_date,
-                end=end_date,
-                progress=False,
-                auto_adjust=False
-            )
+    data = yf.download(
+        tickers,
+        start=start_date,
+        end=end_date,
+        progress=False,
+        auto_adjust=False
+    )
 
-            if df.empty:
-                raise ValueError(f"No data returned for {ticker}")
+    if data.empty:
+        raise ValueError("No data was downloaded. Check tickers or date range.")
 
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.droplevel(1)
+    if "Close" not in data.columns:
+        raise ValueError("Downloaded data must contain Close prices.")
 
-            df["Ticker"] = ticker
-            data[ticker] = df
+    close_prices = data["Close"]
 
-        except Exception as error:
-            print(f"Error loading {ticker}: {error}")
+    if close_prices.isnull().all().all():
+        raise ValueError("Close price data contains only missing values.")
 
-    return data
+    return close_prices.dropna()
